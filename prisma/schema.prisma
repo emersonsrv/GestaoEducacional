@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Credential {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  password String
+
+  user     User?    @relation("UserCredential")
+  userId   Int?     @unique
+}
+
+model Administrador {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  password String
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  nome         String
+  email        String?
+  telefone     String?
+  role         Role
+  
+  credential   Credential @relation("UserCredential", fields: [credentialId], references: [id])
+  credentialId Int        @unique
+
+  professor    Professor? @relation("ProfessorUser")
+  professorId  Int?       @unique
+
+  academico    Academico? @relation("AcademicoUser")
+  academicoId  Int?       @unique
+}
+
+enum Role {
+  PROFESSOR
+  ACADEMICO
+}
+
+model Professor {
+  id          Int                @id @default(autoincrement())
+  cursos      Curso[]            @relation("CursoProfessor")
+  ofertas     Oferta[]           @relation("OfertaProfessor")
+  coordenador Boolean            @default(false)
+  coordena    Curso[]            @relation("CursoCoordenador")
+
+  user       User                @relation("ProfessorUser", fields: [userId], references: [id])
+  userId     Int                 @unique
+}
+
+model Academico {
+  id         Int                 @id @default(autoincrement())
+  matriculas Matricula[]         @relation("AcademicoMatricula")
+
+  curso      Curso               @relation("CursoAcademico", fields: [cursoId], references: [id])
+  cursoId    Int
+
+  user       User                @relation("AcademicoUser", fields: [userId], references: [id])
+  userId     Int                 @unique
+}
+
+model Curso {
+  id            Int              @id @default(autoincrement())
+  nome          String           @unique
+  disciplinas   Disciplina[]     @relation("CursoDisciplina")
+  professores   Professor[]      @relation("CursoProfessor")
+  academicos    Academico[]      @relation("CursoAcademico")
+  ofertas       Oferta[]         @relation("CursoOferta")
+
+  coordenador   Professor?       @relation("CursoCoordenador", fields: [coordenadorId], references: [id])
+  coordenadorId Int?
+}
+
+model Disciplina {
+  id            Int              @id @default(autoincrement())
+  nome          String
+  cargaHoraria  Int
+  ofertas       Oferta[]         @relation("DisciplinaOferta")
+
+  curso         Curso            @relation("CursoDisciplina", fields: [cursoId], references: [id])
+  cursoId       Int
+
+  @@unique([nome, cursoId])
+}
+
+model Oferta {
+  id           Int               @id @default(autoincrement())
+  encerrada    Boolean           @default(false)
+  matriculas   Matricula[]       @relation("OfertaMatricula")
+  
+  curso        Curso             @relation("CursoOferta", fields: [cursoId], references: [id])
+  cursoId      Int
+
+  disciplina   Disciplina        @relation("DisciplinaOferta", fields: [disciplinaId], references: [id])
+  disciplinaId Int
+
+  professor    Professor         @relation("OfertaProfessor", fields: [professorId], references: [id])
+  professorId  Int
+}
+
+model Matricula {
+  id          Int                @id @default(autoincrement())
+
+  academico   Academico          @relation("AcademicoMatricula", fields: [academicoId], references: [id])
+  academicoId Int
+
+  oferta      Oferta             @relation("OfertaMatricula", fields: [ofertaId], references: [id])
+  ofertaId    Int
+
+  @@unique([academicoId, ofertaId])
+}
